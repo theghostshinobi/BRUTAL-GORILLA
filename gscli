@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$DIR"
+
+export PYTHONIOENCODING=UTF-8
+export SECUREBERT_PATH="$DIR/models/SecureBERT"
+export TRANSFORMERS_OFFLINE=1
+export HF_HUB_DISABLE_TELEMETRY=1
+export TOKENIZERS_PARALLELISM=false
+
+PY="$DIR/scan_env/bin/python"
+[ -x "$PY" ] || PY="$(command -v python3)"
+
+echo "[gscli] Using: $PY"
+exec "$PY" -u "$DIR/cli.py" "$@"

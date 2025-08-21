@@ -1,0 +1,672 @@
+# =============================================================================
+# Brutal Gorilla — KB param → famiglia (payload focus)  — EXTENDED v2
+# =============================================================================
+meta:
+  version: 2
+  updated: "2025-08-10"
+  description: >
+    KB dichiarativa che suggerisce una famiglia di test in base al *nome del parametro*
+    (e opzionalmente al suo contesto: path/ctype/valore). Ordine di match:
+    exact > regex > substring. In caso di parità vince la priorità più alta.
+  match_order: ["exact", "regex", "substring"]
+  default_family: "GENERIC"
+  default_priority: 10
+  confidence_scale: ["low","medium","high","certain"]
+  families_legend:
+    XSS:               "Reflected/DOM XSS benign payloads"
+    SQLI:              "Benign SQL-like probes (error/casting/logic — non distruttive)"
+    NOSQLI:            "NoSQL-operators & projection abuse (benign)"
+    IDOR:              "Insecure Direct Object Reference / object switching"
+    REDIRECT:          "Open Redirect / Unvalidated Forward"
+    TRAVERSAL:         "Path traversal soft (LFI hints, encoding, separators)"
+    XXE_SAFE:          "XML External Entity *safe* probes (no file:// exfil; just detection)"
+    SSRF_SAFE:         "SSRF-safe (loopback/link-local/example.com) — no harmful egress"
+    JSONP:             "JSONP callback hijack / function-name injection"
+    CORS:              "CORS misconfig / origin reflection"
+    MASS_ASSIGNMENT:   "Model binding / unexpected fields toggling"
+    AUTH:              "Auth/OAuth/OIDC/SAML parameters (integrity/logic benign checks)"
+    CSRF:              "Anti-forgery tokens presence/consistency"
+    UPLOAD:            "Upload/mime/extension confusion benign checks"
+    HEADER_INJECTION:  "CRLF/response splitting (harmless canaries)"
+    CACHE:             "Cache poisoning/busting keys"
+    DESERIALIZATION:   "Serialized/blobs hints (PHP/Java/.NET) — benign"
+    GRAPHQL:           "GraphQL (introspection toggles/shape control)"
+    SSTI:              "Server-Side Template Injection *benigna*"
+    PROTO_POLLUTION:   "Prototype Pollution (JSON/object keys)"
+    RCE_HINT:          "Generic command/expression hints (benign-only signals)"
+    RATE_LIMIT:        "Rate limiting toggles"
+    FEATURE_FLAG:      "Feature/AB-test toggles"
+    OBSERVABILITY:     "Tracing/telemetry toggles"
+    LOCALE:            "Locale/lang/currency/timezone (noise reducer)"
+    TRACKING:          "UTM/referrer/ad-tracking (deprioritize noise)"
+    GENERIC:           "Fallback safe mutations"
+
+# -----------------------------------------------------------------------------
+# 1) EXACT matches — nomi precisi (case-insensitive)
+# -----------------------------------------------------------------------------
+exact:
+  # ---------- Redirect/Open-Redirect ----------
+  "redirect":                 { family: REDIRECT, priority: 98, confidence: certain }
+  "redirect_to":              { family: REDIRECT, priority: 98, confidence: certain }
+  "redirect_uri":             { family: REDIRECT, priority: 98, confidence: certain, notes: "OAuth/OIDC return" }
+  "post_logout_redirect_uri": { family: REDIRECT, priority: 96, confidence: high }
+  "logout_redirect":          { family: REDIRECT, priority: 94, confidence: high }
+  "return":                   { family: REDIRECT, priority: 96, confidence: high }
+  "return_to":                { family: REDIRECT, priority: 96, confidence: high }
+  "returnUrl":                { family: REDIRECT, priority: 96, confidence: high }
+  "continue":                 { family: REDIRECT, priority: 94, confidence: high }
+  "continueUrl":              { family: REDIRECT, priority: 94, confidence: high }
+  "next":                     { family: REDIRECT, priority: 95, confidence: high }
+  "nextUrl":                  { family: REDIRECT, priority: 95, confidence: high }
+  "dest":                     { family: REDIRECT, priority: 95, confidence: high }
+  "destination":              { family: REDIRECT, priority: 95, confidence: high }
+  "forward":                  { family: REDIRECT, priority: 92, confidence: high }
+  "service":                  { family: REDIRECT, priority: 92, confidence: high, notes: "CAS service return" }
+  "callback":                 { family: REDIRECT, priority: 92, confidence: high }
+  "callback_url":             { family: REDIRECT, priority: 92, confidence: high }
+  "cb":                       { family: REDIRECT, priority: 88, confidence: medium }
+  "ru":                       { family: REDIRECT, priority: 88, confidence: medium, notes: "Return URL abbreviato" }
+  "rurl":                     { family: REDIRECT, priority: 88, confidence: medium }
+  "rd":                       { family: REDIRECT, priority: 86, confidence: medium }
+
+  # ---------- Traversal / file/path ----------
+  "path":                     { family: TRAVERSAL, priority: 95, confidence: high }
+  "filepath":                 { family: TRAVERSAL, priority: 95, confidence: high }
+  "file":                     { family: TRAVERSAL, priority: 92, confidence: high, notes: "Se multipart → UPLOAD" }
+  "file_name":                { family: TRAVERSAL, priority: 92, confidence: high }
+  "filename":                 { family: TRAVERSAL, priority: 92, confidence: high }
+  "dir":                      { family: TRAVERSAL, priority: 90, confidence: high }
+  "folder":                   { family: TRAVERSAL, priority: 90, confidence: high }
+  "include":                  { family: TRAVERSAL, priority: 92, confidence: high, notes: "Include template/LFI hints" }
+  "template":                 { family: TRAVERSAL, priority: 90, confidence: medium, notes: "SSTI se engine noto" }
+  "view":                     { family: TRAVERSAL, priority: 88, confidence: medium }
+  "page":                     { family: GENERIC,   priority: 30, confidence: high, notes: "Paginazione (noise)" }
+  "download":                 { family: TRAVERSAL, priority: 86, confidence: medium }
+
+  # ---------- SSRF / network targets ----------
+  "target":                   { family: SSRF_SAFE, priority: 95, confidence: high }
+  "target_url":               { family: SSRF_SAFE, priority: 96, confidence: certain }
+  "endpoint":                 { family: SSRF_SAFE, priority: 92, confidence: high }
+  "fetch":                    { family: SSRF_SAFE, priority: 90, confidence: medium }
+  "ping":                     { family: SSRF_SAFE, priority: 88, confidence: medium }
+  "notify_url":               { family: SSRF_SAFE, priority: 92, confidence: high }
+  "callback_url":             { family: SSRF_SAFE, priority: 92, confidence: high }
+  "avatar_url":               { family: SSRF_SAFE, priority: 88, confidence: medium }
+  "image_url":                { family: SSRF_SAFE, priority: 88, confidence: medium }
+  "webhook":                  { family: SSRF_SAFE, priority: 94, confidence: high }
+  "url":                      { family: SSRF_SAFE, priority: 90, confidence: medium }
+  "link":                     { family: SSRF_SAFE, priority: 86, confidence: medium }
+  "host":                     { family: SSRF_SAFE, priority: 88, confidence: medium }
+  "hostname":                 { family: SSRF_SAFE, priority: 88, confidence: medium }
+  "domain":                   { family: SSRF_SAFE, priority: 86, confidence: medium }
+  "dns":                      { family: SSRF_SAFE, priority: 86, confidence: medium }
+  "ip":                       { family: SSRF_SAFE, priority: 86, confidence: medium }
+  "addr":                     { family: SSRF_SAFE, priority: 86, confidence: medium }
+
+  # ---------- Search / query (XSS/SQLI splits) ----------
+  "q":                        { family: XSS,  priority: 96, confidence: certain }
+  "query":                    { family: XSS,  priority: 95, confidence: high }     # GraphQL handled in context
+  "search":                   { family: XSS,  priority: 95, confidence: high }
+  "keyword":                  { family: XSS,  priority: 90, confidence: medium }
+  "term":                     { family: XSS,  priority: 88, confidence: medium }
+  "filter":                   { family: SQLI, priority: 90, confidence: medium, notes: "Spesso DSL lato DB" }
+  "where":                    { family: SQLI, priority: 92, confidence: medium }
+  "order":                    { family: SQLI, priority: 90, confidence: medium }
+  "sort":                     { family: SQLI, priority: 90, confidence: medium }
+  "fields":                   { family: SQLI, priority: 84, confidence: medium }
+  "columns":                  { family: SQLI, priority: 84, confidence: medium }
+
+  # ---------- ID/ownership (IDOR) ----------
+  "id":                       { family: IDOR, priority: 98, confidence: certain }
+  "user_id":                  { family: IDOR, priority: 98, confidence: certain }
+  "userid":                   { family: IDOR, priority: 96, confidence: high }
+  "uid":                      { family: IDOR, priority: 96, confidence: high }
+  "account_id":               { family: IDOR, priority: 96, confidence: high }
+  "profile_id":               { family: IDOR, priority: 94, confidence: high }
+  "order_id":                 { family: IDOR, priority: 96, confidence: high }
+  "invoice_id":               { family: IDOR, priority: 94, confidence: high }
+  "customer_id":              { family: IDOR, priority: 94, confidence: high }
+  "subscription_id":          { family: IDOR, priority: 94, confidence: high }
+  "group_id":                 { family: IDOR, priority: 92, confidence: high }
+  "gid":                      { family: IDOR, priority: 90, confidence: medium }
+  "project_id":               { family: IDOR, priority: 92, confidence: high }
+  "resource_id":              { family: IDOR, priority: 92, confidence: high }
+  "file_id":                  { family: IDOR, priority: 92, confidence: high }
+  "folder_id":                { family: IDOR, priority: 92, confidence: high }
+  "photo_id":                 { family: IDOR, priority: 90, confidence: high }
+  "post_id":                  { family: IDOR, priority: 92, confidence: high }
+  "comment_id":               { family: IDOR, priority: 92, confidence: high }
+  "message_id":               { family: IDOR, priority: 90, confidence: high }
+  "thread_id":                { family: IDOR, priority: 90, confidence: high }
+  "uuid":                     { family: IDOR, priority: 90, confidence: medium }
+  "guid":                     { family: IDOR, priority: 90, confidence: medium }
+  "tenant":                   { family: IDOR, priority: 84, confidence: medium }
+  "tenant_id":                { family: IDOR, priority: 90, confidence: high }
+  "org":                      { family: IDOR, priority: 84, confidence: medium }
+  "org_id":                   { family: IDOR, priority: 90, confidence: high }
+
+  # ---------- Auth / OAuth / OIDC / SAML ----------
+  "username":                 { family: AUTH, priority: 92, confidence: high }
+  "user":                     { family: AUTH, priority: 80, confidence: medium }
+  "email":                    { family: AUTH, priority: 78, confidence: medium }
+  "password":                 { family: AUTH, priority: 98, confidence: certain }
+  "pass":                     { family: AUTH, priority: 96, confidence: high }
+  "otp":                      { family: AUTH, priority: 96, confidence: high }
+  "mfa":                      { family: AUTH, priority: 94, confidence: high }
+  "code":                     { family: AUTH, priority: 94, confidence: high }
+  "state":                    { family: AUTH, priority: 94, confidence: high, notes: "OAuth state integrity" }
+  "nonce":                    { family: AUTH, priority: 92, confidence: high }
+  "client_id":                { family: AUTH, priority: 92, confidence: high }
+  "client_secret":            { family: AUTH, priority: 98, confidence: certain }
+  "access_token":             { family: AUTH, priority: 98, confidence: certain }
+  "refresh_token":            { family: AUTH, priority: 98, confidence: certain }
+  "id_token":                 { family: AUTH, priority: 96, confidence: high }
+  "id_token_hint":            { family: AUTH, priority: 92, confidence: high }
+  "grant_type":               { family: AUTH, priority: 90, confidence: high }
+  "response_type":            { family: AUTH, priority: 90, confidence: high }
+  "response_mode":            { family: AUTH, priority: 88, confidence: medium }
+  "scope":                    { family: AUTH, priority: 88, confidence: medium }
+  "audience":                 { family: AUTH, priority: 88, confidence: medium }
+  "prompt":                   { family: AUTH, priority: 86, confidence: medium }
+  "code_verifier":            { family: AUTH, priority: 94, confidence: high, notes: "PKCE" }
+  "code_challenge":           { family: AUTH, priority: 94, confidence: high, notes: "PKCE" }
+  "code_challenge_method":    { family: AUTH, priority: 92, confidence: high, notes: "PKCE" }
+  "assertion":                { family: AUTH, priority: 92, confidence: high }
+  "SAMLResponse":             { family: AUTH, priority: 98, confidence: certain }
+  "RelayState":               { family: AUTH, priority: 96, confidence: high }
+  "SigAlg":                   { family: AUTH, priority: 92, confidence: high }
+  "Signature":                { family: AUTH, priority: 92, confidence: high }
+  "wctx":                     { family: AUTH, priority: 92, confidence: high, notes: "WS-Fed" }
+  "wreply":                   { family: AUTH, priority: 92, confidence: high, notes: "WS-Fed redirect" }
+  "wa":                       { family: AUTH, priority: 90, confidence: high, notes: "WS-Fed action" }
+
+  # ---------- CSRF tokens ----------
+  "csrf":                     { family: CSRF, priority: 98, confidence: certain }
+  "csrf_token":               { family: CSRF, priority: 98, confidence: certain }
+  "xsrf_token":               { family: CSRF, priority: 96, confidence: high }
+  "_csrf":                    { family: CSRF, priority: 96, confidence: high }
+  "_xsrf":                    { family: CSRF, priority: 96, confidence: high }
+  "csrfmiddlewaretoken":      { family: CSRF, priority: 98, confidence: certain } # Django
+  "authenticity_token":       { family: CSRF, priority: 98, confidence: certain } # Rails
+  "__RequestVerificationToken": { family: CSRF, priority: 98, confidence: certain } # ASP.NET
+  "_token":                   { family: CSRF, priority: 96, confidence: high }     # Laravel
+  "wpnonce":                  { family: CSRF, priority: 90, confidence: high }     # WordPress nonce
+
+  # ---------- JSONP ----------
+  "jsonp":                    { family: JSONP, priority: 96, confidence: high }
+  "callback":                 { family: JSONP, priority: 96, confidence: high }
+  "callback_name":            { family: JSONP, priority: 92, confidence: high }
+  "jsoncallback":             { family: JSONP, priority: 92, confidence: high }
+  "cbfunc":                   { family: JSONP, priority: 88, confidence: medium }
+
+  # ---------- CORS ----------
+  "origin":                   { family: CORS, priority: 92, confidence: high }
+  "request_origin":           { family: CORS, priority: 90, confidence: medium }
+
+  # ---------- Upload / mime ----------
+  "upload":                   { family: UPLOAD, priority: 94, confidence: high }
+  "uploadfile":               { family: UPLOAD, priority: 92, confidence: high }
+  "attachment":               { family: UPLOAD, priority: 92, confidence: high }
+  "content_type":             { family: UPLOAD, priority: 90, confidence: medium }
+  "mime":                     { family: UPLOAD, priority: 88, confidence: medium }
+  "type":                     { family: UPLOAD, priority: 70, confidence: low }
+  "ext":                      { family: UPLOAD, priority: 86, confidence: medium }
+
+  # ---------- Header injection / CRLF ----------
+  "location":                 { family: HEADER_INJECTION, priority: 92, confidence: high }
+  "set_cookie":               { family: HEADER_INJECTION, priority: 90, confidence: high }
+  "cookie":                   { family: HEADER_INJECTION, priority: 86, confidence: medium }
+  "header":                   { family: HEADER_INJECTION, priority: 80, confidence: medium }
+
+  # ---------- Cache ----------
+  "cache":                    { family: CACHE, priority: 84, confidence: medium }
+  "cache_key":                { family: CACHE, priority: 86, confidence: medium }
+  "callback_cache":           { family: CACHE, priority: 84, confidence: medium }
+  "cb":                       { family: CACHE, priority: 70, confidence: low }
+  "_":                        { family: CACHE, priority: 72, confidence: low, notes: "Anti-cache query key" }
+  "nocache":                  { family: CACHE, priority: 74, confidence: low }
+  "bust":                     { family: CACHE, priority: 72, confidence: low }
+  "rev":                      { family: CACHE, priority: 70, confidence: low }
+
+  # ---------- Deserialization ----------
+  "data":                     { family: DESERIALIZATION, priority: 80, confidence: medium }
+  "payload":                  { family: DESERIALIZATION, priority: 80, confidence: medium }
+  "object":                   { family: DESERIALIZATION, priority: 80, confidence: medium }
+  "blob":                     { family: DESERIALIZATION, priority: 80, confidence: medium }
+  "serialized":               { family: DESERIALIZATION, priority: 82, confidence: medium }
+  "ser":                      { family: DESERIALIZATION, priority: 80, confidence: medium }
+
+  # ---------- GraphQL ----------
+  "query":                    { family: GRAPHQL, priority: 92, confidence: medium, notes: "Se path /graphql" }
+  "operationName":            { family: GRAPHQL, priority: 88, confidence: medium }
+  "variables":                { family: GRAPHQL, priority: 88, confidence: medium }
+
+  # ---------- NoSQLi / projection ----------
+  "$where":                   { family: NOSQLI, priority: 96, confidence: high }
+  "$ne":                      { family: NOSQLI, priority: 94, confidence: high }
+  "$gt":                      { family: NOSQLI, priority: 92, confidence: high }
+  "$lt":                      { family: NOSQLI, priority: 92, confidence: high }
+  "$in":                      { family: NOSQLI, priority: 92, confidence: high }
+  "$regex":                   { family: NOSQLI, priority: 92, confidence: high }
+  "projection":               { family: NOSQLI, priority: 88, confidence: medium }
+  "criteria":                 { family: NOSQLI, priority: 88, confidence: medium }
+
+  # ---------- SSTI / RCE hints ----------
+  "template":                 { family: SSTI, priority: 90, confidence: medium }
+  "tpl":                      { family: SSTI, priority: 88, confidence: medium }
+  "engine":                   { family: SSTI, priority: 84, confidence: low }
+  "expr":                     { family: RCE_HINT, priority: 86, confidence: medium }
+  "expression":               { family: RCE_HINT, priority: 86, confidence: medium }
+  "cmd":                      { family: RCE_HINT, priority: 88, confidence: medium }
+  "command":                  { family: RCE_HINT, priority: 88, confidence: medium }
+  "execute":                  { family: RCE_HINT, priority: 88, confidence: medium }
+
+  # ---------- Prototype Pollution ----------
+  "__proto__":                { family: PROTO_POLLUTION, priority: 98, confidence: certain }
+  "prototype":                { family: PROTO_POLLUTION, priority: 96, confidence: high }
+  "constructor":              { family: PROTO_POLLUTION, priority: 96, confidence: high }
+  "proto":                    { family: PROTO_POLLUTION, priority: 94, confidence: high }
+
+  # ---------- Rate limit / observability / feature flags ----------
+  "limit":                    { family: RATE_LIMIT,     priority: 40, confidence: medium }
+  "per_page":                 { family: RATE_LIMIT,     priority: 40, confidence: medium }
+  "page_size":                { family: RATE_LIMIT,     priority: 40, confidence: medium }
+  "sample":                   { family: OBSERVABILITY,  priority: 30, confidence: low }
+  "trace":                    { family: OBSERVABILITY,  priority: 30, confidence: low }
+  "traceparent":              { family: OBSERVABILITY,  priority: 30, confidence: low }
+  "tracestate":               { family: OBSERVABILITY,  priority: 30, confidence: low }
+  "feature":                  { family: FEATURE_FLAG,   priority: 40, confidence: low }
+  "experiment":               { family: FEATURE_FLAG,   priority: 40, confidence: low }
+  "ab":                       { family: FEATURE_FLAG,   priority: 36, confidence: low }
+
+  # ---------- Locale / currency / tz (noise) ----------
+  "lang":                     { family: LOCALE, priority: 20, confidence: high }
+  "locale":                   { family: LOCALE, priority: 20, confidence: high }
+  "tz":                       { family: LOCALE, priority: 20, confidence: high }
+  "timezone":                 { family: LOCALE, priority: 20, confidence: high }
+  "currency":                 { family: LOCALE, priority: 20, confidence: high }
+
+  # ---------- Tracking (explicit noise; very low priority) ----------
+  "utm_source":               { family: TRACKING, priority: 5, confidence: certain }
+  "utm_medium":               { family: TRACKING, priority: 5, confidence: certain }
+  "utm_campaign":             { family: TRACKING, priority: 5, confidence: certain }
+  "utm_term":                 { family: TRACKING, priority: 5, confidence: certain }
+  "utm_content":              { family: TRACKING, priority: 5, confidence: certain }
+  "gclid":                    { family: TRACKING, priority: 4, confidence: certain }
+  "fbclid":                   { family: TRACKING, priority: 4, confidence: certain }
+  "mc_eid":                   { family: TRACKING, priority: 4, confidence: certain }
+  "ref":                      { family: TRACKING, priority: 6, confidence: medium }
+  "refsrc":                   { family: TRACKING, priority: 6, confidence: medium }
+
+# -----------------------------------------------------------------------------
+# 2) REGEX rules — pattern ampi (case-insensitive)
+# -----------------------------------------------------------------------------
+regex:
+  # Redirecters
+  - pattern: "^(?:ret(?:urn)?|redir(?:ect)?|next|dest(?:ination)?|continue|to|url|cb|callback|wreply|wctx|service)$"
+    family: REDIRECT
+    priority: 92
+    confidence: high
+
+  # IDs / ownership
+  - pattern: "^(?:[a-z0-9]*_)?id$"
+    family: IDOR
+    priority: 96
+    confidence: high
+  - pattern: "^(?:guid|uuid|[a-z]*_?uuid)$"
+    family: IDOR
+    priority: 90
+    confidence: medium
+  - pattern: "^[a-z0-9]+_id$"
+    family: IDOR
+    priority: 92
+    confidence: high
+
+  # Files/paths
+  - pattern: "^(?:file|file_?name|file_?path|dir|folder|path|include|template|view|download)$"
+    family: TRAVERSAL
+    priority: 92
+    confidence: high
+
+  # SSRF-ish
+  - pattern: "^(?:target|endpoint|webhook|avatar_?url|image_?url|notify_?url|callback_?url|host|hostname|domain|dns|ip|addr|url|link)$"
+    family: SSRF_SAFE
+    priority: 92
+    confidence: high
+
+  # XSS-ish query/search
+  - pattern: "^(?:q|query|search|keyword|term|kw)$"
+    family: XSS
+    priority: 92
+    confidence: high
+
+  # SQLi-ish filters
+  - pattern: "^(?:where|order|sort|filter|columns?|fields?)$"
+    family: SQLI
+    priority: 90
+    confidence: medium
+
+  # NoSQL operators
+  - pattern: "^\\$?(?:where|ne|gt|lt|in|regex)$"
+    family: NOSQLI
+    priority: 92
+    confidence: high
+
+  # Auth
+  - pattern: "^(?:user(?:name)?|email|login|password|pass|otp|mfa|code|state|nonce|client_?id|client_?secret|access_?token|refresh_?token|id_?token)$"
+    family: AUTH
+    priority: 92
+    confidence: high
+  - pattern: "^(?:response_?type|response_?mode|scope|audience|prompt|grant_?type|code_?verifier|code_?challenge(?:_method)?)$"
+    family: AUTH
+    priority: 90
+    confidence: high
+  - pattern: "^(?:saml(?:response)?|relaystate|sigalg|signature|wreply|wctx|wa)$"
+    family: AUTH
+    priority: 92
+    confidence: high
+
+  # CSRF
+  - pattern: "^(?:csrf|xsrf|anti[-_]?csrf|__requestverificationtoken|csrfmiddlewaretoken|authenticity_?token|_token|_csrf|_xsrf)$"
+    family: CSRF
+    priority: 98
+    confidence: certain
+
+  # JSONP
+  - pattern: "^(?:jsonp|jsoncallback|callback(?:_name)?|cbfunc|cb)$"
+    family: JSONP
+    priority: 92
+    confidence: high
+
+  # CORS
+  - pattern: "^(?:origin|request_?origin)$"
+    family: CORS
+    priority: 90
+    confidence: high
+
+  # Upload
+  - pattern: "^(?:upload|uploadfile|attachment|file(?:name|path)?|content[_-]?type|mime|ext)$"
+    family: UPLOAD
+    priority: 90
+    confidence: high
+
+  # Header inj
+  - pattern: "^(?:location|set[_-]?cookie|cookie|header|response[_-]?header)$"
+    family: HEADER_INJECTION
+    priority: 88
+    confidence: high
+
+  # Cache
+  - pattern: "^(?:cache|cache[_-]?key|callback[_-]?cache|_+|nocache|bust|rev)$"
+    family: CACHE
+    priority: 84
+    confidence: medium
+
+  # GraphQL
+  - pattern: "^(?:query|operationName|variables)$"
+    family: GRAPHQL
+    priority: 90
+    confidence: medium
+
+  # SSTI / RCE hints
+  - pattern: "^(?:template|tpl|engine|expr|expression|cmd|command|execute)$"
+    family: SSTI
+    priority: 88
+    confidence: medium
+
+  # Prototype pollution
+  - pattern: "^(?:__proto__|prototype|constructor|proto)$"
+    family: PROTO_POLLUTION
+    priority: 96
+    confidence: high
+
+  # Locale & tracking (noise)
+  - pattern: "^(?:lang|locale|tz|timezone|currency)$"
+    family: LOCALE
+    priority: 20
+    confidence: high
+  - pattern: "^(?:utm_(?:source|medium|campaign|term|content)|gclid|fbclid|mc_eid|ref|refsrc)$"
+    family: TRACKING
+    priority: 5
+    confidence: certain
+
+# -----------------------------------------------------------------------------
+# 3) SUBSTRING rules — fallback (case-insensitive)
+# -----------------------------------------------------------------------------
+substring:
+  # Redirect hints
+  - contains: "redirect"
+    family: REDIRECT
+    priority: 78
+    confidence: medium
+  - contains: "return"
+    family: REDIRECT
+    priority: 76
+  - contains: "callback"
+    family: JSONP
+    priority: 74
+    notes: "Se response/ctype è JS → JSONP"
+
+  # Path/file hints
+  - contains: "path"
+    family: TRAVERSAL
+    priority: 76
+  - contains: "file"
+    family: TRAVERSAL
+    priority: 74
+  - contains: "download"
+    family: TRAVERSAL
+    priority: 72
+
+  # SSRF hints
+  - contains: "url"
+    family: SSRF_SAFE
+    priority: 74
+  - contains: "host"
+    family: SSRF_SAFE
+    priority: 72
+  - contains: "webhook"
+    family: SSRF_SAFE
+    priority: 78
+
+  # ID-ish
+  - contains: "_id"
+    family: IDOR
+    priority: 82
+
+  # Sorting/filter-ish
+  - contains: "sort"
+    family: SQLI
+    priority: 70
+  - contains: "order"
+    family: SQLI
+    priority: 70
+  - contains: "filter"
+    family: SQLI
+    priority: 72
+
+  # Upload-ish
+  - contains: "upload"
+    family: UPLOAD
+    priority: 74
+
+  # Mass assignment-ish
+  - contains: "admin"
+    family: MASS_ASSIGNMENT
+    priority: 84
+  - contains: "role"
+    family: MASS_ASSIGNMENT
+    priority: 82
+  - contains: "feature"
+    family: FEATURE_FLAG
+    priority: 44
+
+  # Token-ish
+  - contains: "token"
+    family: AUTH
+    priority: 86
+
+# -----------------------------------------------------------------------------
+# 4) Composite hints — comorbidità di parametri
+# -----------------------------------------------------------------------------
+composite:
+  - when_all: ["file", "path"]
+    raise_family_to: TRAVERSAL
+    add_priority: 12
+    notes: "File + path → forte indicatore LFI/path handling"
+  - when_all: ["callback", "jsonp"]
+    raise_family_to: JSONP
+    add_priority: 12
+  - when_any: ["host", "ip", "target", "endpoint", "webhook", "notify_url"]
+    also_mark: SSRF_SAFE
+    add_priority: 8
+  - when_all: ["username", "password"]
+    raise_family_to: AUTH
+    add_priority: 14
+  - when_all: ["role", "is_admin"]
+    raise_family_to: MASS_ASSIGNMENT
+    add_priority: 14
+  - when_all: ["order", "sort", "filter"]
+    raise_family_to: SQLI
+    add_priority: 10
+  - when_all: ["template", "engine"]
+    raise_family_to: SSTI
+    add_priority: 10
+  - when_all: ["__proto__", "constructor"]
+    raise_family_to: PROTO_POLLUTION
+    add_priority: 14
+
+# -----------------------------------------------------------------------------
+# 5) Context overrides — path/ctype/engine influenzano famiglia
+# -----------------------------------------------------------------------------
+context_overrides:
+  by_path_regex:
+    - pattern: "/graphql"
+      prefer_family: GRAPHQL
+      add_priority: 10
+    - pattern: "(?:/download|/export|/report)"
+      prefer_family: TRAVERSAL
+      add_priority: 8
+    - pattern: "(?:/login|/auth|/signin|/oauth|/saml)"
+      prefer_family: AUTH
+      add_priority: 10
+    - pattern: "(?:/callback|/cb|/return)"
+      prefer_family: REDIRECT
+      add_priority: 8
+    - pattern: "(?:/api/|^api\\.)"
+      prefer_family: IDOR
+      add_priority: 6
+  by_content_type:
+    "application/json":
+      prefer_family: SQLI
+      add_priority: 6
+    "text/html":
+      prefer_family: XSS
+      add_priority: 8
+    "multipart/form-data":
+      prefer_family: UPLOAD
+      add_priority: 10
+    "application/graphql":
+      prefer_family: GRAPHQL
+      add_priority: 10
+    "application/xml":
+      prefer_family: XXE_SAFE
+      add_priority: 10
+    "text/xml":
+      prefer_family: XXE_SAFE
+      add_priority: 10
+  by_template_engine_hint:
+    "twig|jinja|mustache|handlebars|ejs|pug|velocity|freemarker|thymeleaf":
+      prefer_family: SSTI
+      add_priority: 10
+
+# -----------------------------------------------------------------------------
+# 6) Value hints — pattern sul valore (opzionali; i motori possono usarli)
+# -----------------------------------------------------------------------------
+value_hints:
+  uuid_v4_regex: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+  uuid_any_regex: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+  jwt_like_regex: "^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$"
+  email_regex: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+  url_regex: "^(?:(?:https?|ftp)://)"
+  ipv4_regex: "^(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$"
+  ipv6_regex: "^(?:[A-Fa-f0-9:]+:+)+[A-Fa-f0-9]+$"
+  base64_regex: "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+  hex_regex: "^[0-9a-fA-F]+$"
+  number_regex: "^-?\\d+(?:\\.\\d+)?$"
+  # Traversal tokens in valore
+  traversal_token_regex: "(?:\\.\\./|\\.\\.\\\\|%2e%2e%2f|%2e%2e%5c|\\.\\.%2f|\\.\\.%5c)"
+  # Safe SSRF targets (motore può sostituire valore verso questi)
+  ssrf_safe_targets: ["http://127.0.0.1/","http://localhost/","http://169.254.169.254/","http://example.com/"]
+  # Suspicious data URL
+  data_url_regex: "^data:[a-z]+/[a-z0-9.+-]+;base64,"
+
+# -----------------------------------------------------------------------------
+# 7) Bypass hints (soft) per famiglia — non distruttivi
+# -----------------------------------------------------------------------------
+bypass_hints:
+  WAF:
+    soft_transforms: ["percent_encode", "mixed_casing", "json_wrap", "xml_wrap", "whitespace_comment"]
+    max_iterations: 2
+  XSS:
+    safe_wrappers: ["<q>{payload}</q>", "\"{payload}\"", "<!--{payload}-->"]
+    reflections_canary: ["BGX", "ZXSS1", "X1A"]
+  SQLI:
+    benign_probes: ["' OR 1=1 -- ", "\" OR 1=1 -- ", "0 UNION SELECT NULL", "') OR ('1'='1"]
+    operators: ["OR","AND","LIKE","CAST","CONCAT","COALESCE"]
+  NOSQLI:
+    benign_probes: ['{"$ne": null}', '{"$gt": ""}', '{"$regex": ".*"}']
+  TRAVERSAL:
+    benign_probes: ["../", "..\\", "%2e%2e/", "..;/", "..%2f", "..%5c"]
+  REDIRECT:
+    targets: ["//example.com", "/\\example.com", "https://example.com", "///evil.com", "%2f%2fevil.com"]
+  SSRF_SAFE:
+    targets: ["http://127.0.0.1/", "http://localhost/", "http://169.254.169.254/", "http://example.com/"]
+  JSONP:
+    callbacks: ["alert", "confirm", "BGJsonp"]
+  CORS:
+    origins: ["https://example.com", "https://evil.example", "null"]
+  XXE_SAFE:
+    benign_entities: ["<!DOCTYPE a [ <!ENTITY x 'BGX'> ]>"]
+    notes: "Solo detection; evitare resolver esterni/file://"
+  SSTI:
+    benign_markers: ["{{7*7}}", "${{7*7}}", "#{7*7}", "<%= 7*7 %>"]
+  PROTO_POLLUTION:
+    benign_keys: ["__proto__", "constructor", "prototype"]
+
+# -----------------------------------------------------------------------------
+# 8) Noise lists / deprioritizzazioni
+# -----------------------------------------------------------------------------
+noise:
+  # Parametri da tenere *molto* bassi in priorità se non co-indicati da contesto
+  low_value_params:
+    - "utm_source"
+    - "utm_medium"
+    - "utm_campaign"
+    - "utm_term"
+    - "utm_content"
+    - "gclid"
+    - "fbclid"
+    - "mc_eid"
+    - "ref"
+    - "refsrc"
+    - "page"
+    - "per_page"
+    - "offset"
+    - "limit"
+    - "lang"
+    - "locale"
+    - "currency"
+    - "tz"
+    - "timezone"
+
+# -----------------------------------------------------------------------------
+# 9) Note operative
+# -----------------------------------------------------------------------------
+notes:
+  - "Case-insensitive su tutte le chiavi di parametro."
+  - "Ordine: exact > regex > substring. In parità, vince PRIORITY; poi exact>regex>substring."
+  - "Context overrides possono *alzare* la priorità (es. ctype XML → XXE_SAFE)."
+  - "SSRF_SAFE e XXE_SAFE definiscono *solo* destinazioni/payload non dannosi."
+  - "Tracking/Locale sono taggati come *noise*: i motori dovrebbero limitarne i tentativi."
+  - "Le chiavi aggiuntive non riconosciute dai motori devono essere ignorate senza errori."

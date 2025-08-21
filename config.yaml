@@ -1,0 +1,143 @@
+ai:
+  dl_mutate:
+    enable: true
+    variants_per: 5
+  embeddings:
+    batch_size: 32
+    device: cpu
+    enable: true
+    model: sentence-transformers/all-MiniLM-L6-v2
+    similarity_threshold: 0.9
+  enable: true
+  jwt_analysis:
+    enable: true
+  securebert:
+    enable: true
+    min_decision_score: 0.0
+    model_id: seyonec/SecureBERT
+  shap_explain:
+    enable: true
+    max_evals: 50
+  vector_search:
+    enable: true
+    faiss: true
+    n_components: 128
+    umap: true
+analysis:
+  avg_score_history: []
+  bandit_top_n: null
+  shap_max_evals: 50
+  window: 10
+avg_score_history: []
+budget:
+  max_requests: null
+  max_time_s: null
+  per_host_max_requests: null
+concurrency: 8
+concurrency_default: 8
+description: "Brutal Gorilla configuration \u2014 all AI features enabled"
+endpoints_file: /Users/ghostshinobi/Desktop/endpoints.txt
+export:
+  format: both
+  pretty_json: true
+  safe_sanitize_bytes: true
+  write_outputs: true
+export_default: both
+export_format: none
+kb_param_family_file: kb_param_families.yaml
+observability:
+  enable_metrics_server: true
+  metrics_host: 0.0.0.0
+  metrics_port: 8000
+  run_id: null
+  tracing:
+    enable_otel: false
+    service_name: brutal-gorilla
+output_csv: orchestrator_results.csv
+output_file: orchestrator_output.json
+page_size_default: 50
+policy:
+  family_threshold_deltas:
+    AUTH: 0.03
+    CORS: 0.05
+    GENERIC: 0.0
+    IDOR: 0.05
+    REDIRECT: -0.05
+    SQLI: 0.0
+    TRAVERSAL: -0.05
+    UPLOAD: -0.02
+    XSS: -0.05
+  gating:
+    max_cap: 100
+    min_cap: 10
+    min_score: 0.35
+    top_k_ratio: 0.25
+  overrides:
+    ai_force_on: true
+    allow_dl_mutate: true
+    allow_payload_generation: true
+    allow_securebert: true
+  thresholds:
+    deep:
+      ai: 0.54
+      enrich: 0.315
+      payload_hint: 0.405
+    light:
+      ai: 0.66
+      enrich: 0.385
+      payload_hint: 0.495
+    standard:
+      ai: 0.6
+      enrich: 0.35
+      payload_hint: 0.45
+  waf_bypass:
+    history_window: 8
+    improve_delta_score: 0.05
+    max_iterations: 2
+    repeats_required: 2
+probe:
+  budget: {}
+  profile: standard
+profile: deep
+profile_default: standard
+resilience:
+  circuit_breaker:
+    cooldown_sec: 120
+    threshold: 5
+  concurrency: 12
+  retries:
+    backoff_max_ms: 900
+    backoff_min_ms: 300
+    total: 1
+  timeouts:
+    connect: 3
+    pool: 8
+    read: 7
+    write: 7
+retries: 1
+retries_default: 1
+safety:
+  csv_include_raw_blobs: false
+  json_bytes_strategy: preview
+  max_json_preview_bytes: 1024
+securebert_path: /Users/ghostshinobi/Desktop/brutal_gorilla/models/SecureBERT
+shap_max_evals: 50
+timeout: 10.0
+timeout_s_default: 10.0
+top_n: 0
+ui:
+  default_page_size: 50
+  table_columns:
+    flags: 18
+    lat: 7
+    meth: 5
+    rank: 5
+    score: 6
+    size: 8
+    status: 6
+    type: 14
+    url: 60
+    waf: 5
+version: 1
+window: 10
+write_outputs: false

@@ -1,4 +1,4 @@
-# GHOSTSHINOBI Cybersec CLI (aka **brutal\_gorilla\_3**)
+# GHOSTSHINOBI Cybersec CLI (aka **brutal\_gorilla\2.0**)
 
 Command-line toolkit to **map web attack surface** from endpoint lists, orchestrate parallel HTTP probes, score findings, and render **clean ASCII reports** (plus JSON/CSV) you can drop into a workflow or paste into tickets.
 
